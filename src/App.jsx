@@ -8,9 +8,9 @@ const services = [
 ]
 
 const events = [
-  { date: '14', month: 'SEP', title: 'Welcome Home Sunday', meta: 'Sunday, 9:00 AM & 11:30 AM', tone: 'gold' },
-  { date: '21', month: 'SEP', title: 'Jubilee Night of Worship', meta: 'Friday, 7:00 PM', tone: 'coral' },
-  { date: '28', month: 'SEP', title: 'Serve the City', meta: 'Saturday, 10:00 AM', tone: 'blue' },
+  { date: '2026-09-14', title: 'Welcome Home Sunday', meta: 'Sunday, 9:00 AM & 11:30 AM', tone: 'gold' },
+  { date: '2026-09-21', title: 'Jubilee Night of Worship', meta: 'Friday, 7:00 PM', tone: 'coral' },
+  { date: '2026-09-28', title: 'Serve the City', meta: 'Saturday, 10:00 AM', tone: 'blue' },
 ]
 
 const answers = {
