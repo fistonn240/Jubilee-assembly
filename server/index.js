@@ -62,23 +62,6 @@ app.get('/api/events', async (request, response) => {
   }
 })
 
-app.post('/api/contact', async (request, response) => {
-  const { name, email, subject = '', message } = request.body
-  if (!name?.trim() || !email?.trim() || !message?.trim()) {
-    return response.status(400).json({ error: 'Name, email, and message are required.' })
-  }
-  try {
-    const [result] = await databaseQuery(() => pool.execute(
-      'INSERT INTO contact_messages (name, email, subject, message) VALUES (?, ?, ?, ?)',
-      [name.trim(), email.trim(), subject.trim(), message.trim()],
-    ))
-    response.status(201).json({ id: result.insertId, message: 'Thanks. Our team will be in touch soon.' })
-  } catch (error) {
-    console.error(error.message)
-    response.status(202).json({ stored: false, message: 'Your message was received. The team will follow up soon.' })
-  }
-})
-
 app.post('/api/chat', async (request, response) => {
   const question = request.body.question?.trim()
   if (!question) return response.status(400).json({ error: 'A question is required.' })
