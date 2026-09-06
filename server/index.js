@@ -22,7 +22,7 @@ app.get('/api/health', async (_request, response) => {
 app.get('/api/services', async (_request, response, next) => {
   try {
     const [rows] = await pool.query(
-      'SELECT id, day_name AS day, service_time AS time, title AS label FROM services ORDER BY sort_order, id',
+      'SELECT id, day_name AS day, service_time AS time, title AS label FROM services ORDER BY id',
     )
     response.json(rows)
   } catch (error) {
