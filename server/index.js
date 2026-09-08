@@ -1,11 +1,15 @@
 import express from 'express'
 import cors from 'cors'
 import 'dotenv/config'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { checkDatabase, pool } from './db.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
 const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173'
+const contactFallbackFile = path.resolve(process.cwd(), 'data/contact-messages.json')
 const fallbackServices = [
   { id: 1, day: 'Sunday', time: '9:00 AM', label: 'Celebration service' },
   { id: 2, day: 'Sunday', time: '11:30 AM', label: 'Celebration service' },
@@ -26,6 +30,25 @@ function databaseQuery(operation) {
 
 app.use(cors({ origin: clientOrigin }))
 app.use(express.json({ limit: '32kb' }))
+
+function requiredText(value, maxLength) {
+  return typeof value === 'string' && value.trim().length > 0 && value.trim().length <= maxLength
+}
+
+async function saveContactLocally(contact) {
+  await mkdir(path.dirname(contactFallbackFile), { recursive: true })
+  let contacts = []
+  try {
+    contacts = JSON.parse(await readFile(contactFallbackFile, 'utf8'))
+    if (!Array.isArray(contacts)) contacts = []
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+  }
+  const savedContact = { id: `local-${Date.now()}`, ...contact, createdAt: new Date().toISOString() }
+  contacts.push(savedContact)
+  await writeFile(contactFallbackFile, `${JSON.stringify(contacts, null, 2)}\n`, 'utf8')
+  return savedContact
+}
 
 app.get('/api/health', async (_request, response) => {
   try {
@@ -101,6 +124,34 @@ app.post('/api/chat', async (request, response) => {
   }
 })
 
+app.post('/api/contact', async (request, response) => {
+  const name = request.body.name?.trim()
+  const email = request.body.email?.trim().toLowerCase()
+  const subject = request.body.subject?.trim()
+  const message = request.body.message?.trim()
+
+  if (!requiredText(name, 100) || !requiredText(email, 254) || !/^\S+@\S+\.\S+$/.test(email) || !requiredText(subject, 100) || !requiredText(message, 5000)) {
+    return response.status(400).json({ error: 'Please provide a valid name, email, subject, and message.' })
+  }
+
+  try {
+    const [result] = await databaseQuery(() => pool.execute(
+      'INSERT INTO contact_messages (name, email, subject, message) VALUES (?, ?, ?, ?)',
+      [name, email, subject, message],
+    ))
+    response.status(201).json({ id: result.insertId, message: 'Thanks. Your message has been sent.' })
+  } catch (error) {
+    console.error(error.message)
+    try {
+      const savedContact = await saveContactLocally({ name, email, subject, message })
+      response.status(201).json({ id: savedContact.id, message: 'Thanks. Your message has been saved and our team will follow up.', storage: 'local' })
+    } catch (fallbackError) {
+      console.error(fallbackError.message)
+      response.status(503).json({ error: 'We could not send your message right now. Please try again shortly.' })
+    }
+  }
+})
+
 function fallbackAnswer(question) {
   const lower = question.toLowerCase()
   if (lower.includes('service') || lower.includes('time')) return 'Our Sunday services are at 9:00 AM and 11:30 AM, with a midweek gathering on Wednesday at 6:30 PM.'
@@ -114,6 +165,10 @@ app.use((error, _request, response, _next) => {
   response.status(500).json({ error: 'Something went wrong on the server.' })
 })
 
-app.listen(port, () => {
-  console.log(`Jubilee API listening on http://localhost:${port}`)
-})
+export default app
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  app.listen(port, () => {
+    console.log(`Jubilee API listening on http://localhost:${port}`)
+  })
+}

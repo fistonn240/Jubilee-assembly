@@ -26,6 +26,15 @@ CREATE TABLE IF NOT EXISTS chat_questions (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS contact_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(254) NOT NULL,
+  subject VARCHAR(100) NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 INSERT INTO services (day_name, service_time, title, sort_order)
 SELECT 'Sunday', '9:00 AM', 'Celebration service', 1
 WHERE NOT EXISTS (SELECT 1 FROM services WHERE day_name = 'Sunday' AND service_time = '9:00 AM');
