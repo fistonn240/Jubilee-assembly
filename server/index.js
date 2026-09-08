@@ -8,7 +8,10 @@ import { checkDatabase, pool } from './db.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
-const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173'
+const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
 const contactFallbackFile = path.resolve(process.cwd(), 'data/contact-messages.json')
 const fallbackServices = [
   { id: 1, day: 'Sunday', time: '9:00 AM', label: 'Celebration service' },
@@ -28,7 +31,12 @@ function databaseQuery(operation) {
   ])
 }
 
-app.use(cors({ origin: clientOrigin }))
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true)
+    return callback(new Error('Origin is not allowed by CLIENT_ORIGIN'))
+  },
+}))
 app.use(express.json({ limit: '32kb' }))
 
 function requiredText(value, maxLength) {
